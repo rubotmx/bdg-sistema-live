@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BDG · Dashboard Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#F6F4F1; --surface:#FFFFFF; --surface2:#F0EDE9;
+  --border:#E5E1DB; --border-strong:#CEC9C1;
+  --text:#181512; --muted:#7A736B; --faint:#B0A99F;
+  --ok-bg:#E8F2DC; --ok:#306010;
+  --low-bg:#FDF2DC; --low:#875500;
+  --out-bg:#EEECEA; --out:#888078;
+  --neg-bg:#FBEBEB; --neg:#8B2020;
+  --info-bg:#E8EFF8; --info:#1A4A8A;
+  --nav-w:220px; --header-h:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
+
+/* ── APP ── */
+#appScreen { display:none; flex-direction:row; min-height:100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:var(--nav-w); flex-shrink:0;
+  background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  position:fixed; top:0; left:0; height:100vh; z-index:20;
+}
+.sidebar-brand {
+  padding:18px 20px 14px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+}
+.logo {
+  width:32px; height:32px; border-radius:7px;
+  background:var(--text); color:#fff;
+  font-family:'DM Mono',monospace; font-size:11px; font-weight:500;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.brand-name { font-size:14px; font-weight:500; letter-spacing:-0.2px; }
+.brand-sub { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
+.nav { flex:1; padding:12px 10px; overflow-y:auto; }
+.nav-section-title { font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--faint); padding:10px 10px 6px; }
+.nav-item {
+  display:flex; align-items:center; gap:9px;
+  padding:8px 10px; border-radius:8px; cursor:pointer;
+  font-size:13px; color:var(--muted); transition:all 0.12s;
+  margin-bottom:2px; border:none; background:none;
+  width:100%; text-align:left; font-family:'DM Sans',sans-serif;
+}
+.nav-item:hover { background:var(--surface2); color:var(--text); }
+.nav-item.active { background:var(--text); color:#fff; }
+.nav-icon { font-size:14px; opacity:0.6; width:16px; text-align:center; flex-shrink:0; }
+.nav-item.active .nav-icon { opacity:1; }
+.nav-badge { margin-left:auto; font-size:10px; font-family:'DM Mono',monospace; background:var(--neg-bg); color:var(--neg); padding:1px 6px; border-radius:10px; }
+.nav-soon { margin-left:auto; font-size:10px; background:var(--surface2); color:var(--faint); padding:1px 7px; border-radius:10px; font-family:'DM Mono',monospace; }
+.sidebar-footer { padding:14px 20px; border-top:1px solid var(--border); }
+.user-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.user-avatar { width:26px; height:26px; border-radius:50%; background:var(--surface2); border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; color:var(--muted); flex-shrink:0; font-family:'DM Mono',monospace; }
+.user-name { font-size:12px; color:var(--muted); flex:1; }
+.logout-btn { font-size:11px; background:none; border:none; color:var(--faint); cursor:pointer; font-family:'DM Sans',sans-serif; padding:2px 0; }
+.logout-btn:hover { color:var(--neg); }
+.live-chip { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ok); font-family:'DM Mono',monospace; }
+.live-dot { width:6px; height:6px; border-radius:50%; background:var(--ok); animation:pulse 2s infinite; flex-shrink:0; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.last-sync { font-size:10px; color:var(--faint); font-family:'DM Mono',monospace; margin-top:4px; }
+
+/* ── MAIN ── */
+.main { margin-left:var(--nav-w); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+.topbar {
+  height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 28px; position:sticky; top:0; z-index:10; gap:12px;
+}
+.page-title { font-size:16px; font-weight:500; letter-spacing:-0.3px; }
+.sync-btn {
+  font-size:12px; font-family:'DM Sans',sans-serif;
+  background:var(--text); color:#fff; border:none;
+  border-radius:8px; padding:7px 14px; cursor:pointer;
+  display:flex; align-items:center; gap:6px; transition:opacity 0.15s;
+}
+.sync-btn:hover { opacity:0.8; }
+.sync-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.sync-icon { display:inline-block; }
+.sync-icon.spin { animation:spin 0.7s linear infinite; }
+@keyframes spin{to{transform:rotate(360deg)}}
+.content { padding:28px; flex:1; }
+
+/* ── KPI ── */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:24px; }
+.kpi { background:var(--surface); padding:16px 18px; }
+.kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.kpi-val { font-size:28px; font-weight:300; font-family:'DM Mono',monospace; letter-spacing:-1.5px; color:var(--text); }
+.kpi-val.warn { color:var(--neg); }
+.kpi-sub { font-size:11px; color:var(--faint); margin-top:2px; }
+
+/* ── TOOLBAR ── */
+.toolbar { display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
+.chip-group { display:flex; gap:5px; flex-wrap:wrap; }
+.chip { font-size:12px; padding:5px 12px; border-radius:20px; cursor:pointer; border:1px solid var(--border-strong); background:var(--surface); color:var(--muted); transition:all 0.1s; font-family:'DM Sans',sans-serif; }
+.chip:hover { border-color:var(--text); color:var(--text); }
+.chip.active { background:var(--text); color:#fff; border-color:var(--text); }
+.legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.leg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+.leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+/* ── PRODUCT CARDS ── */
+.prod-list { display:flex; flex-direction:column; gap:16px; }
+.prod-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; animation:fadeUp 0.25s ease both; }
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.prod-head { padding:13px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.rank { width:22px; height:22px; border-radius:50%; background:var(--text); color:#fff; font-size:10px; font-weight:500; font-family:'DM Mono',monospace; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rank.sec { background:var(--surface2); color:var(--muted); border:1px solid var(--border-strong); }
+.prod-name { font-size:14px; font-weight:500; }
+.tag-row { display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; }
+.tag { font-size:11px; padding:3px 9px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'DM Mono',monospace; white-space:nowrap; }
+.tag.alert { background:var(--neg-bg); color:var(--neg); border-color:#F5BFBF; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:0.6px; color:var(--muted); padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); text-align:center; white-space:nowrap; }
+th.lft { text-align:left; min-width:80px; }
+th.tot { background:#EEEBE7; }
+td { padding:7px 12px; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+td.lft { text-align:left; font-weight:500; color:var(--text); white-space:nowrap; }
+td.tot { background:var(--surface2); font-weight:500; font-family:'DM Mono',monospace; color:var(--text); }
+tr.foot td { background:#EEEBE7; font-size:11px; font-weight:500; color:var(--muted); font-family:'DM Mono',monospace; border-top:1px solid var(--border-strong); }
+tr.foot td.tot { color:var(--text); }
+.pill { font-size:11px; font-weight:500; padding:2px 8px; border-radius:20px; display:inline-block; min-width:30px; text-align:center; font-family:'DM Mono',monospace; }
+.ok  { background:var(--ok-bg);  color:var(--ok); }
+.low { background:var(--low-bg); color:var(--low); }
+.out { background:var(--out-bg); color:var(--out); }
+.neg { background:var(--neg-bg); color:var(--neg); }
+.na  { color:var(--faint); font-size:11px; }
+
+/* ── PLACEHOLDER ── */
+.placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; text-align:center; gap:12px; }
+.placeholder-icon { font-size:36px; opacity:0.2; }
+.placeholder h2 { font-size:20px; font-weight:400; color:var(--muted); }
+.placeholder p { font-size:13px; color:var(--faint); max-width:300px; line-height:1.6; }
+.placeholder-badge { font-size:11px; background:var(--info-bg); color:var(--info); border:1px solid #C0D4F0; padding:4px 12px; border-radius:20px; font-family:'DM Mono',monospace; }
+
+@media(max-width:768px){
+  .sidebar { transform:translateX(-100%); transition:transform 0.25s; }
+  .sidebar.open { transform:translateX(0); }
+  .main { margin-left:0; }
+  .content { padding:16px; }
+  .menu-btn { display:flex!important; }
+}
+.menu-btn { display:none; background:none; border:none; cursor:pointer; padding:6px; border-radius:6px; color:var(--text); font-size:18px; }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:15; }
+.overlay.visible { display:block; }
+</style>
+</head>
+<body>
+
+
+<!-- OVERLAY MOBILE -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- APP -->
+<div id="appScreen">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">BDG</div>
+      <div>
+        <div class="brand-name">Bala Di Gala</div>
+        <div class="brand-sub">Operaciones</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section-title">Principal</div>
+      <button class="nav-item active" onclick="showPage('inventario',this)">
+        <span class="nav-icon">▦</span> Inventario
+        <span class="nav-badge" id="nav-oversell-badge" style="display:none">!</span>
+      </button>
+      <div class="nav-section-title" style="margin-top:8px;">Próximamente</div>
+      <button class="nav-item" onclick="showPage('ventas',this)">
+        <span class="nav-icon">↗</span> Ventas
+        <span class="nav-soon">pronto</span>
+      </button>
+      <button class="nav-item" onclick="showPage('marketing',this)">
+        <span class="nav-icon">◈</span> Marketing
+        <span class="nav-soon">pronto</span>
+      </button>
+      <button class="nav-item" onclick="showPage('clientes',this)">
+        <span class="nav-icon">○</span> Clientes
+        <span class="nav-soon">pronto</span>
+      </button>
+      <button class="nav-item" onclick="showPage('reportes',this)">
+        <span class="nav-icon">≡</span> Reportes
+        <span class="nav-soon">pronto</span>
+      </button>
+      <div class="nav-section-title" style="margin-top:8px;">Sistema BDG</div>
+      <button class="nav-item" onclick="window.location.href='Calendario LIVE Anfitrionas BDG.html'">
+        <span class="nav-icon">◷</span> Calendario LIVE
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="userAvatar">—</div>
+        <div class="user-name" id="userName">—</div>
+        <button class="logout-btn" onclick="doLogout()">Salir</button>
+      </div>
+      <div class="live-chip"><span class="live-dot"></span>Windsor.ai · Shopify</div>
+      <div class="last-sync" id="lastSync">—</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <span class="page-title" id="pageTitle">Inventario · 9 productos</span>
+      </div>
+      <button class="sync-btn" id="syncBtn" onclick="loadInventory()">
+        <span class="sync-icon" id="syncIcon">↻</span> Actualizar
+      </button>
+    </header>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<script>
+const ANTHROPIC_API_KEY = "";
+
+function doLogout(){}
+
+// Iniciar directo sin login
+window.addEventListener("DOMContentLoaded", () => {
+document.getElementById("appScreen").style.display = "flex";
+  document.getElementById("userAvatar").textContent = "BDG";
+  document.getElementById("userName").textContent = "Equipo BDG";
+  INVENTORY = {...FALLBACK};
+  updateOversellBadge();
+  renderInventoryPage();
+  document.getElementById("lastSync").textContent = "Cache · " + new Date().toLocaleDateString("es-MX");
+  loadInventory();
+  startAutoRefresh();
+});
+
+// ── PRODUCTS ──────────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  {rank:1,cat:"clogs", name:"PENNY CLOG",              query:"PENNY CLOGS"},
+  {rank:2,cat:"clogs", name:"PENNY PONY CLOGS",        query:"PENNY PONY CLOGS"},
+  {rank:3,cat:"clogs", name:"PARKER CLOGS",            query:"PARKER CLOGS"},
+  {rank:4,cat:"clogs", name:"FRANKIE CLOGS",           query:"FRANKIE CLOGS"},
+  {rank:5,cat:"acc",   name:"ECO PROTECT",             query:"ECO PROTECT"},
+  {rank:6,cat:"flux",  name:"FLUX PONY SNEAKERS",      query:"FLUX PONY SNEAKERS"},
+  {rank:7,cat:"flux",  name:"FLUX BABY BLUE SNEAKERS", query:"FLUX BABY BLUE SNEAKERS"},
+  {rank:8,cat:"flux",  name:"FLUX METALLIC SILVER",    query:"FLUX METALLIC SILVER"},
+  {rank:9,cat:"flux",  name:"FLUX SAND SNEAKERS",      query:"FLUX SAND SNEAKERS"},
+];
+
+// Datos actualizados desde Shopify via Windsor.ai — 20/03/2026
+const FALLBACK = {
+  "PENNY CLOG":      {"Taupe":{"23":164,"24":224,"25":26,"26":0,"27":11,"28":1,"29":2},"Brown":{"23":8,"24":21,"25":1,"26":0,"27":-3,"28":0,"29":1},"Black Honey":{"23":7,"24":-2,"25":-1,"26":0,"27":0},"Negro":{"23":14,"24":15,"25":0,"26":0,"27":6,"28":4,"29":4},"Terracota":{"23":0,"24":7,"25":0,"26":0,"27":9,"28":3,"29":3},"Olivo":{"23":15,"24":9,"25":4,"26":2,"27":8,"28":5,"29":5},"Negro Suede":{"23":-1,"24":0,"25":-8,"26":-4,"27":0,"28":0,"29":0}},
+  "PENNY PONY CLOGS":{"Default":{"23":0,"24":5,"25":7,"26":0,"27":0}},
+  "PARKER CLOGS":    {"Taupe":{"23":2,"24":28,"25":7,"26":6,"27":1,"28":0,"29":0},"Negro":{"23":0,"24":0,"25":2,"26":-1,"27":2,"28":-1,"29":0},"Brown":{"23":-1,"24":14,"25":49,"26":-3,"27":1,"28":0,"29":-1}},
+  "FRANKIE CLOGS":   {"Taupe":{"23":2,"24":0,"25":0,"26":1,"27":0},"Brown":{"23":0,"24":0,"25":-1,"26":0,"27":0},"Black":{"23":2,"24":3,"25":2,"26":2,"27":0}},
+  "ECO PROTECT":     {"Default":{"Única":12}},
+  "FLUX PONY SNEAKERS":      {"Default":{"23":5,"24":0,"25":0,"26":4,"27":3}},
+  "FLUX BABY BLUE SNEAKERS": {"Default":{"23":1,"24":1,"25":1,"26":8,"27":6}},
+  "FLUX METALLIC SILVER":    {"Default":{"23":6,"24":0,"25":0,"26":0,"27":3}},
+  "FLUX SAND SNEAKERS":      {"Default":{"23":9,"24":6,"25":6,"26":6,"27":9}},
+};
+
+let INVENTORY = {};
+let activeFilter = "all";
+let currentPage = "inventario";
+
+const qClass = q => q>=4?"ok":q>=1?"low":q===0?"out":"neg";
+const avail  = cm => Object.values(cm).flatMap(s=>Object.values(s)).reduce((a,q)=>a+Math.max(0,q),0);
+const hasNeg = cm => Object.values(cm).flatMap(s=>Object.values(s)).some(q=>q<0);
+
+function parseVariants(raw){
+  const map = {};
+  raw.forEach(r => {
+    const vt = (r.product_variant_title||"Default Title").trim();
+    const q  = Math.round(r.product_variant_inventory_quantity ?? 0);
+    let color="Default", size=vt;
+    if(vt.includes(" / ")){ const p=vt.split(" / "); color=p[0].trim(); size=p[1].trim(); }
+    else if(vt==="Default Title"){ size="Única"; }
+    const sClean = size.replace(/ PRESALE| LAST CHANCE/gi,"").trim();
+    if(!map[color]) map[color]={};
+    map[color][sClean] = q;
+  });
+  return map;
+}
+
+async function fetchWindsor(titleFilter){
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-beta":"mcp-client-0.1.0"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-5",
+      max_tokens:4000,
+      system:`Return ONLY a JSON array of objects with keys product_variant_title and product_variant_inventory_quantity. No markdown, no explanation.`,
+      messages:[{role:"user",content:`Use Windsor.ai MCP (account: baladigalamx.myshopify.com) to fetch Shopify inventory. Fields: product_variant_title, product_variant_inventory_quantity. Date filter: products updatedAt, last_30dT. Filter: product_title contains "${titleFilter}". Return raw JSON array only.`}],
+      mcp_servers:[{type:"url",url:"https://mcp.windsor.ai",name:"windsor"}]
+    })
+  });
+  if(!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+  return JSON.parse(text.replace(/```json|```/g,"").trim());
+}
+
+async function loadInventory(){
+  const btn=document.getElementById("syncBtn");
+  const icon=document.getElementById("syncIcon");
+  btn.disabled=true; icon.classList.add("spin");
+  try {
+    const results = await Promise.allSettled(PRODUCTS.map(p=>fetchWindsor(p.query)));
+    let liveCount=0;
+    results.forEach((res,i)=>{
+      if(res.status==="fulfilled"&&Array.isArray(res.value)&&res.value.length>0){
+        INVENTORY[PRODUCTS[i].name]=parseVariants(res.value);
+        liveCount++;
+      } else if(!INVENTORY[PRODUCTS[i].name]){
+        INVENTORY[PRODUCTS[i].name]=FALLBACK[PRODUCTS[i].name]||{};
+      }
+    });
+    const ts=new Date().toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"});
+    document.getElementById("lastSync").textContent=(liveCount>0?"Live · ":"Cache · ")+ts;
+  } catch(e){
+    Object.assign(INVENTORY,FALLBACK);
+    document.getElementById("lastSync").textContent="Cache · "+new Date().toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"});
+  }
+  updateOversellBadge();
+  if(currentPage==="inventario") renderInventoryPage();
+  btn.disabled=false; icon.classList.remove("spin");
+}
+
+function updateOversellBadge(){
+  const badge=document.getElementById("nav-oversell-badge");
+  const n=PRODUCTS.filter(p=>INVENTORY[p.name]&&hasNeg(INVENTORY[p.name])).length;
+  badge.textContent=n; badge.style.display=n>0?"inline":"none";
+}
+
+function renderInventoryPage(){
+  const content=document.getElementById("content");
+  document.getElementById("pageTitle").textContent="Inventario · 9 productos";
+  const filtered=PRODUCTS.filter(p=>activeFilter==="all"||p.cat===activeFilter);
+  let totalU=0,totalNeg=0,totalOut=0;
+  filtered.forEach(p=>{
+    const cm=INVENTORY[p.name]||{};
+    const allQ=Object.values(cm).flatMap(s=>Object.values(s));
+    totalU+=allQ.reduce((s,q)=>s+Math.max(0,q),0);
+    totalOut+=allQ.filter(q=>q<=0).length;
+    if(allQ.some(q=>q<0)) totalNeg++;
+  });
+
+  let html=`
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Unidades disponibles</div><div class="kpi-val">${totalU.toLocaleString("es-MX")}</div></div>
+    <div class="kpi"><div class="kpi-label">SKUs agotados</div><div class="kpi-val ${totalOut>0?"warn":""}">${totalOut}</div><div class="kpi-sub">en los productos filtrados</div></div>
+    <div class="kpi"><div class="kpi-label">Oversell activo</div><div class="kpi-val ${totalNeg>0?"warn":""}">${totalNeg}</div><div class="kpi-sub">productos con stock negativo</div></div>
+    <div class="kpi"><div class="kpi-label">Productos</div><div class="kpi-val">${filtered.length}</div><div class="kpi-sub">de 9 en total</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="chip-group">
+      <span style="font-size:12px;color:var(--muted);margin-right:2px;">Categoría:</span>
+      <button class="chip ${activeFilter==="all"?"active":""}" onclick="setFilter('all',this)">Todos</button>
+      <button class="chip ${activeFilter==="clogs"?"active":""}" onclick="setFilter('clogs',this)">Clogs</button>
+      <button class="chip ${activeFilter==="flux"?"active":""}" onclick="setFilter('flux',this)">Flux Sneakers</button>
+      <button class="chip ${activeFilter==="acc"?"active":""}" onclick="setFilter('acc',this)">Accesorios</button>
+    </div>
+    <div class="legend">
+      <span class="leg"><span class="leg-dot" style="background:var(--ok)"></span>4+</span>
+      <span class="leg"><span class="leg-dot" style="background:var(--low)"></span>1–3</span>
+      <span class="leg"><span class="leg-dot" style="background:#C0BAB4"></span>Agotado</span>
+      <span class="leg"><span class="leg-dot" style="background:var(--neg)"></span>Oversell</span>
+    </div>
+  </div>
+  <div class="prod-list">`;
+
+  filtered.forEach((prod,i)=>{
+    const cm=INVENTORY[prod.name]||{};
+    const colors=Object.keys(cm);
+    if(!colors.length) return;
+    const ta=avail(cm), neg=hasNeg(cm);
+    const allSizes=[...new Set(colors.flatMap(c=>Object.keys(cm[c])))].sort((a,b)=>{const na=parseInt(a),nb=parseInt(b);return isNaN(na)||isNaN(nb)?a.localeCompare(b):na-nb;});
+    const single=colors.length===1&&(colors[0]==="Default"||colors[0]==="Única");
+    let thead="",tbody="";
+    if(single){
+      const sz=cm[colors[0]];
+      thead=`<tr>${allSizes.map(s=>`<th>${s}</th>`).join("")}<th class="tot">Total</th></tr>`;
+      tbody=`<tr>${allSizes.map(s=>{const q=sz[s]??null;return q!==null?`<td><span class="pill ${qClass(q)}">${q}</span></td>`:`<td><span class="na">—</span></td>`;}).join("")}<td class="tot">${ta}</td></tr>`;
+    } else {
+      thead=`<tr><th class="lft">Color</th>${allSizes.map(s=>`<th>${s}</th>`).join("")}<th class="tot">Total</th></tr>`;
+      colors.forEach(c=>{
+        const sz=cm[c],rt=Object.values(sz).reduce((s,q)=>s+Math.max(0,q),0);
+        tbody+=`<tr><td class="lft">${c}</td>${allSizes.map(s=>{const q=sz[s]??null;return q!==null?`<td><span class="pill ${qClass(q)}">${q}</span></td>`:`<td><span class="na">—</span></td>`;}).join("")}<td class="tot">${rt}</td></tr>`;
+      });
+      const ft=allSizes.map(s=>colors.reduce((sum,c)=>sum+Math.max(0,cm[c][s]||0),0));
+      tbody+=`<tr class="foot"><td class="lft">Total</td>${ft.map(v=>`<td>${v||"—"}</td>`).join("")}<td class="tot">${ta}</td></tr>`;
+    }
+    html+=`<div class="prod-card" style="animation-delay:${i*0.04}s">
+      <div class="prod-head">
+        <div class="rank ${prod.rank>4?"sec":""}">${prod.rank}</div>
+        <div class="prod-name">${prod.name}</div>
+        <div class="tag-row"><span class="tag">${ta} uds</span>${neg?`<span class="tag alert">⚠ oversell</span>`:""}</div>
+      </div>
+      <div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
+    </div>`;
+  });
+  html+=`</div>`;
+  content.innerHTML=html;
+}
+
+function showPage(page,el){
+  currentPage=page;
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  if(el) el.classList.add("active");
+  closeSidebar();
+  if(page==="inventario"){
+    document.getElementById("pageTitle").textContent="Inventario · 9 productos";
+    document.getElementById("syncBtn").style.display="flex";
+    renderInventoryPage(); return;
+  }
+  document.getElementById("syncBtn").style.display="none";
+  const labels={ventas:"Ventas",marketing:"Marketing",clientes:"Clientes",reportes:"Reportes"};
+  const desc={ventas:"Ventas diarias, semanales y por canal desde Shopify.",marketing:"Métricas de Facebook, TikTok y campañas.",clientes:"Base de clientes, retención y LTV.",reportes:"Reportes descargables de inventario y ventas."};
+  document.getElementById("pageTitle").textContent=labels[page]||page;
+  document.getElementById("content").innerHTML=`<div class="placeholder"><div class="placeholder-icon">◌</div><h2>${labels[page]}</h2><p>${desc[page]}</p><span class="placeholder-badge">próximamente</span></div>`;
+}
+
+function setFilter(key,el){
+  activeFilter=key;
+  renderInventoryPage();
+}
+
+function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); document.getElementById("overlay").classList.toggle("visible"); }
+function closeSidebar(){ document.getElementById("sidebar").classList.remove("open"); document.getElementById("overlay").classList.remove("visible"); }
+
+let autoRefreshInterval=null;
+function startAutoRefresh(){
+  if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+  autoRefreshInterval=setInterval(()=>{ loadInventory(); },5*60*1000);
+}
+</script>
+</body>
+</html>
